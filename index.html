@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DocuAI – AI Documentation Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --card: #1a1a26;
+    --border: #2a2a3f;
+    --accent: #00e5ff;
+    --accent2: #7c3aed;
+    --text: #e8e8f0;
+    --muted: #6b7280;
+    --green: #00ff88;
+    --red: #ff4466;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Glow orbs */
+  .orb1 {
+    position: fixed; top: -200px; left: -200px;
+    width: 600px; height: 600px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(124,58,237,0.15) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+    animation: orb-drift 8s ease-in-out infinite alternate;
+  }
+  .orb2 {
+    position: fixed; bottom: -200px; right: -200px;
+    width: 500px; height: 500px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,229,255,0.10) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+    animation: orb-drift 10s ease-in-out infinite alternate-reverse;
+  }
+  @keyframes orb-drift {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(40px, 30px); }
+  }
+
+  /* HEADER */
+  header {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 40px;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+    background: rgba(10,10,15,0.8);
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 800;
+  }
+  .logo-icon {
+    width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .logo span { color: var(--accent); }
+  .badge {
+    font-family: 'Space Mono', monospace; font-size: 0.7rem;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    padding: 4px 12px; border-radius: 20px; color: #fff; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  /* HERO */
+  .hero {
+    position: relative; z-index: 1;
+    text-align: center; padding: 60px 20px 40px;
+  }
+  .hero-tag {
+    display: inline-block; font-family: 'Space Mono', monospace; font-size: 0.75rem;
+    color: var(--accent); letter-spacing: 3px; text-transform: uppercase;
+    border: 1px solid rgba(0,229,255,0.3); padding: 6px 16px; border-radius: 20px;
+    margin-bottom: 24px; animation: fade-up 0.6s ease both;
+  }
+  .hero h1 {
+    font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 800; line-height: 1.1;
+    margin-bottom: 16px; animation: fade-up 0.7s ease both;
+  }
+  .hero h1 .highlight {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero p {
+    color: var(--muted); font-size: 1.1rem; max-width: 500px; margin: 0 auto 32px;
+    animation: fade-up 0.8s ease both;
+  }
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* STATS bar */
+  .stats-bar {
+    display: flex; justify-content: center; gap: 40px; flex-wrap: wrap;
+    padding: 16px 40px; margin: 0 40px 40px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    position: relative; z-index: 1;
+  }
+  .stat { text-align: center; }
+  .stat-num { font-family: 'Space Mono', monospace; font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+  .stat-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  /* MAIN LAYOUT */
+  .main {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 24px; padding: 0 40px 40px; max-width: 1400px; margin: 0 auto;
+    position: relative; z-index: 1;
+  }
+  @media (max-width: 900px) { .main { grid-template-columns: 1fr; padding: 0 16px 40px; } }
+
+  /* PANELS */
+  .panel {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    display: flex; flex-direction: column; overflow: hidden;
+    transition: border-color 0.3s;
+  }
+  .panel:focus-within { border-color: rgba(0,229,255,0.4); }
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .panel-title {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'Space Mono', monospace; font-size: 0.8rem;
+    text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-yellow { background: #fbbf24; }
+  .dot-green  { background: var(--green); }
+  .dot-red    { background: var(--red); }
+  .panel-actions { display: flex; gap: 8px; }
+
+  /* LANGUAGE SELECTOR */
+  select {
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    padding: 4px 10px; border-radius: 6px; font-family: 'Space Mono', monospace;
+    font-size: 0.75rem; cursor: pointer; outline: none;
+  }
+  select:focus { border-color: var(--accent); }
+
+  /* TEXTAREA */
+  textarea {
+    flex: 1; background: transparent; border: none; outline: none;
+    color: var(--text); font-family: 'Space Mono', monospace; font-size: 0.82rem;
+    line-height: 1.7; padding: 20px; resize: none; min-height: 320px;
+    tab-size: 2;
+  }
+  textarea::placeholder { color: var(--muted); }
+
+  /* GENERATE BUTTON */
+  .btn-generate {
+    margin: 16px 20px 20px;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    border: none; color: #fff; font-family: 'Syne', sans-serif;
+    font-size: 1rem; font-weight: 700; padding: 14px 28px;
+    border-radius: 10px; cursor: pointer; width: calc(100% - 40px);
+    position: relative; overflow: hidden;
+    transition: transform 0.15s, box-shadow 0.15s;
+    letter-spacing: 0.5px;
+  }
+  .btn-generate:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,229,255,0.25); }
+  .btn-generate:active { transform: translateY(0); }
+  .btn-generate:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-shine {
+    position: absolute; top: 0; left: -100%; width: 60%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    animation: shine 2s ease-in-out infinite;
+  }
+  @keyframes shine { 0% { left: -100%; } 100% { left: 200%; } }
+
+  /* OUTPUT */
+  .output-content {
+    flex: 1; padding: 20px; overflow-y: auto; min-height: 320px;
+    font-family: 'Space Mono', monospace; font-size: 0.82rem; line-height: 1.8;
+  }
+  .placeholder-msg {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 300px; color: var(--muted); text-align: center; gap: 12px;
+  }
+  .placeholder-msg .icon { font-size: 2.5rem; opacity: 0.4; }
+
+  /* DOC SECTIONS */
+  .doc-section { margin-bottom: 28px; animation: fade-up 0.4s ease both; }
+  .doc-section:nth-child(2) { animation-delay: 0.1s; }
+  .doc-section:nth-child(3) { animation-delay: 0.2s; }
+  .doc-section:nth-child(4) { animation-delay: 0.3s; }
+  .doc-section:nth-child(5) { animation-delay: 0.4s; }
+
+  .doc-h1 {
+    font-family: 'Syne', sans-serif; font-size: 1.2rem; font-weight: 800;
+    color: var(--accent); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid rgba(0,229,255,0.2); padding-bottom: 8px;
+  }
+  .doc-h2 {
+    font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700;
+    color: var(--accent2); margin: 14px 0 6px; letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .doc-p { color: #b0b0c0; line-height: 1.8; font-size: 0.82rem; margin-bottom: 8px; }
+  .doc-code {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 16px; margin: 8px 0; color: var(--green); font-size: 0.78rem;
+    overflow-x: auto; white-space: pre-wrap; word-break: break-word;
+  }
+  .doc-tag {
+    display: inline-block; background: rgba(124,58,237,0.2); border: 1px solid rgba(124,58,237,0.4);
+    color: #a78bfa; padding: 2px 8px; border-radius: 4px;
+    font-size: 0.7rem; margin: 2px; font-family: 'Space Mono', monospace;
+  }
+  .doc-tag.green { background: rgba(0,255,136,0.1); border-color: rgba(0,255,136,0.3); color: var(--green); }
+  .doc-tag.red { background: rgba(255,68,102,0.1); border-color: rgba(255,68,102,0.3); color: var(--red); }
+
+  .doc-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; margin: 8px 0; }
+  .doc-table th { background: var(--bg); color: var(--accent); padding: 8px 12px; text-align: left; border: 1px solid var(--border); }
+  .doc-table td { padding: 7px 12px; border: 1px solid var(--border); color: var(--muted); }
+  .doc-table tr:hover td { background: rgba(255,255,255,0.02); color: var(--text); }
+
+  /* LOADING */
+  .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; gap: 20px; }
+  .spinner {
+    width: 40px; height: 40px; border: 3px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { color: var(--muted); font-family: 'Space Mono', monospace; font-size: 0.8rem; }
+  .loading-steps { display: flex; flex-direction: column; gap: 6px; width: 200px; }
+  .step { display: flex; align-items: center; gap: 8px; font-family: 'Space Mono', monospace; font-size: 0.72rem; color: var(--muted); }
+  .step.done { color: var(--green); }
+  .step.active { color: var(--accent); }
+  .step-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+  /* COPY BTN */
+  .btn-copy {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    padding: 6px 14px; border-radius: 6px; font-family: 'Space Mono', monospace;
+    font-size: 0.72rem; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-copy:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* FEATURES STRIP */
+  .features {
+    display: flex; justify-content: center; flex-wrap: wrap; gap: 12px;
+    padding: 0 40px 40px; position: relative; z-index: 1;
+  }
+  .feature-chip {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 8px 16px; border-radius: 20px; font-size: 0.78rem; color: var(--muted);
+    transition: all 0.2s;
+  }
+  .feature-chip:hover { border-color: var(--accent); color: var(--text); }
+  .feature-chip .icon { font-size: 0.9rem; }
+
+  /* EXAMPLE SNIPPETS */
+  .examples {
+    padding: 0 40px 60px; position: relative; z-index: 1;
+    max-width: 1400px; margin: 0 auto;
+  }
+  .examples-title {
+    font-family: 'Space Mono', monospace; font-size: 0.78rem;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 2px;
+    margin-bottom: 16px;
+  }
+  .example-chips { display: flex; gap: 10px; flex-wrap: wrap; }
+  .example-chip {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 8px 16px; border-radius: 8px; font-family: 'Space Mono', monospace;
+    font-size: 0.72rem; cursor: pointer; color: var(--muted);
+    transition: all 0.2s;
+  }
+  .example-chip:hover { border-color: var(--accent2); color: var(--text); background: rgba(124,58,237,0.1); }
+
+  /* ERROR */
+  .error-msg {
+    background: rgba(255,68,102,0.1); border: 1px solid rgba(255,68,102,0.3);
+    padding: 16px; border-radius: 8px; color: var(--red); font-size: 0.8rem; margin: 20px;
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  /* Options bar */
+  .options-bar {
+    padding: 12px 20px; background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+  }
+  .opt-label { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: var(--muted); }
+  .opt-check { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .opt-check input { accent-color: var(--accent); }
+  .opt-check span { font-size: 0.78rem; color: var(--text); }
+
+  .api-key-bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 20px; background: rgba(0,229,255,0.05);
+    border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  }
+  .api-key-bar input {
+    flex: 1; background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); padding: 8px 12px; border-radius: 8px;
+    font-family: 'Space Mono', monospace; font-size: 0.75rem; outline: none;
+  }
+  .api-key-bar input:focus { border-color: var(--accent); }
+  .get-key-link {
+    font-family: 'Space Mono', monospace; font-size: 0.72rem;
+    color: var(--accent); text-decoration: none; white-space: nowrap;
+  }
+  .get-key-link:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="orb1"></div>
+<div class="orb2"></div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    Docu<span>AI</span>
+  </div>
+  <div class="badge">Hackathon Build</div>
+</header>
+
+<section class="hero">
+  <div class="hero-tag">✦ AI-Powered Documentation</div>
+  <h1>Stop Writing Docs.<br/><span class="highlight">Let AI Do It.</span></h1>
+  <p>Paste any code snippet. Get complete, professional documentation in seconds — with examples, parameters, and usage guides.</p>
+</section>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-num" id="genCount">0</div><div class="stat-label">Docs Generated</div></div>
+  <div class="stat"><div class="stat-num">10+</div><div class="stat-label">Languages Supported</div></div>
+  <div class="stat"><div class="stat-num">&lt;5s</div><div class="stat-label">Avg. Generation Time</div></div>
+  <div class="stat"><div class="stat-num">100%</div><div class="stat-label">AI Powered</div></div>
+</div>
+
+<div class="main">
+  <!-- INPUT PANEL -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">
+        <span class="dot dot-red"></span>
+        <span class="dot dot-yellow"></span>
+        <span class="dot dot-green"></span>
+        &nbsp; Input Code
+      </div>
+      <select id="langSelect">
+        <option value="auto">Auto-detect</option>
+        <option value="JavaScript">JavaScript</option>
+        <option value="Python">Python</option>
+        <option value="TypeScript">TypeScript</option>
+        <option value="Java">Java</option>
+        <option value="Go">Go</option>
+        <option value="C++">C++</option>
+        <option value="Rust">Rust</option>
+        <option value="PHP">PHP</option>
+        <option value="SQL">SQL</option>
+      </select>
+    </div>
+    <div class="options-bar">
+      <span class="opt-label">Include:</span>
+      <label class="opt-check"><input type="checkbox" id="optExamples" checked/><span>Usage Examples</span></label>
+      <label class="opt-check"><input type="checkbox" id="optComplexity" checked/><span>Complexity</span></label>
+      <label class="opt-check"><input type="checkbox" id="optSecurity" checked/><span>Security Notes</span></label>
+    </div>
+    <textarea id="codeInput" placeholder="// Paste your code here...
+// Example:
+function fetchUserData(userId, includeOrders = false) {
+  return db.users.findById(userId, {
+    include: includeOrders ? ['orders'] : []
+  });
+}"></textarea>
+    <div class="api-key-bar">
+      <span>&#128273;</span>
+      <input type="password" id="apiKeyInput" placeholder="Paste Gemini API key (AIza...)" autocomplete="off"/>
+      <a href="https://aistudio.google.com/app/apikey" target="_blank" class="get-key-link">Get free key &#8594;</a>
+    </div>
+    <button class="btn-generate" id="generateBtn" onclick="generateDocs()">
+      <span class="btn-shine"></span>
+      ⚡ Generate Documentation
+    </button>
+  </div>
+
+  <!-- OUTPUT PANEL -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">
+        <span class="dot dot-green"></span>
+        &nbsp; Generated Documentation
+      </div>
+      <div class="panel-actions">
+        <button class="btn-copy" id="copyBtn" onclick="copyDocs()" style="display:none">📋 Copy</button>
+      </div>
+    </div>
+    <div class="output-content" id="outputPanel">
+      <div class="placeholder-msg">
+        <div class="icon">📄</div>
+        <div>Paste your code and click Generate</div>
+        <div style="font-size:0.7rem; font-family:'Space Mono',monospace; color: var(--muted)">Supports any programming language</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<div class="features">
+  <div class="feature-chip"><span class="icon">🔍</span> Auto-detects language</div>
+  <div class="feature-chip"><span class="icon">📝</span> JSDoc / Docstring format</div>
+  <div class="feature-chip"><span class="icon">🧪</span> Usage examples generated</div>
+  <div class="feature-chip"><span class="icon">⚠️</span> Edge cases & errors</div>
+  <div class="feature-chip"><span class="icon">🔒</span> Security considerations</div>
+  <div class="feature-chip"><span class="icon">⚡</span> Big-O complexity analysis</div>
+</div>
+
+<!-- EXAMPLES -->
+<div class="examples">
+  <div class="examples-title">↳ Try an example</div>
+  <div class="example-chips">
+    <div class="example-chip" onclick="loadExample('auth')">🔐 Auth Middleware</div>
+    <div class="example-chip" onclick="loadExample('sort')">📊 Merge Sort</div>
+    <div class="example-chip" onclick="loadExample('api')">🌐 API Rate Limiter</div>
+    <div class="example-chip" onclick="loadExample('db')">🗄️ DB Connection Pool</div>
+  </div>
+</div>
+
+<script>
+const EXAMPLES = {
+  auth: `function authMiddleware(req, res, next) {
+  const token = req.headers['authorization']?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'No token provided' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(403).json({ error: 'Invalid or expired token' });
+  }
+}`,
+  sort: `def merge_sort(arr):
+    if len(arr) <= 1:
+        return arr
+    mid = len(arr) // 2
+    left = merge_sort(arr[:mid])
+    right = merge_sort(arr[mid:])
+    return merge(left, right)
+
+def merge(left, right):
+    result = []
+    i = j = 0
+    while i < len(left) and j < len(right):
+        if left[i] <= right[j]:
+            result.append(left[i]); i += 1
+        else:
+            result.append(right[j]); j += 1
+    return result + left[i:] + right[j:]`,
+  api: `class RateLimiter {
+  constructor(maxRequests, windowMs) {
+    this.maxRequests = maxRequests;
+    this.windowMs = windowMs;
+    this.requests = new Map();
+  }
+  isAllowed(clientId) {
+    const now = Date.now();
+    const windowStart = now - this.windowMs;
+    if (!this.requests.has(clientId)) {
+      this.requests.set(clientId, []);
+    }
+    const clientRequests = this.requests.get(clientId)
+      .filter(time => time > windowStart);
+    if (clientRequests.length >= this.maxRequests) return false;
+    clientRequests.push(now);
+    this.requests.set(clientId, clientRequests);
+    return true;
+  }
+}`,
+  db: `class ConnectionPool {
+  constructor(config) {
+    this.config = config;
+    this.pool = [];
+    this.maxSize = config.maxConnections || 10;
+    this.activeConnections = 0;
+  }
+  async acquire() {
+    if (this.pool.length > 0) return this.pool.pop();
+    if (this.activeConnections < this.maxSize) {
+      this.activeConnections++;
+      return await this.createConnection();
+    }
+    return await this.waitForConnection();
+  }
+  release(conn) {
+    this.pool.push(conn);
+  }
+  async createConnection() {
+    return await db.connect(this.config);
+  }
+}`
+};
+
+let generatedText = '';
+let genCount = 0;
+
+function loadExample(key) {
+  document.getElementById('codeInput').value = EXAMPLES[key];
+}
+
+async function generateDocs() {
+  const code = document.getElementById('codeInput').value.trim();
+  if (!code) { alert('Please paste some code first!'); return; }
+
+  const lang = document.getElementById('langSelect').value;
+  const wantExamples = document.getElementById('optExamples').checked;
+  const wantComplexity = document.getElementById('optComplexity').checked;
+  const wantSecurity = document.getElementById('optSecurity').checked;
+
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  document.getElementById('copyBtn').style.display = 'none';
+
+  // Show loading
+  document.getElementById('outputPanel').innerHTML = `
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <div class="loading-steps" id="loadingSteps">
+        <div class="step active" id="step1"><span class="step-dot"></span> Parsing code structure...</div>
+        <div class="step" id="step2"><span class="step-dot"></span> Analyzing parameters...</div>
+        <div class="step" id="step3"><span class="step-dot"></span> Generating examples...</div>
+        <div class="step" id="step4"><span class="step-dot"></span> Writing documentation...</div>
+      </div>
+    </div>`;
+
+  // Animate loading steps
+  const steps = ['step1','step2','step3','step4'];
+  let si = 0;
+  const stepInterval = setInterval(() => {
+    if (si > 0) document.getElementById(steps[si-1])?.classList.replace('active','done');
+    if (si < steps.length) {
+      document.getElementById(steps[si])?.classList.add('active');
+      si++;
+    }
+  }, 600);
+
+  const langNote = lang === 'auto' ? '' : ` The code is written in ${lang}.`;
+
+  const GEMINI_API_KEY = document.getElementById('apiKeyInput').value.trim();
+  if (!GEMINI_API_KEY) {
+    alert('Please enter your Gemini API key first!');
+    btn.disabled = false;
+    return;
+  }
+
+  const prompt = `You are a senior software engineer and technical writer. Generate comprehensive, professional documentation for the following code.${langNote}
+
+Return ONLY a JSON object (no markdown, no backticks) with this exact structure:
+{
+  "functionName": "name of the main function/class",
+  "language": "detected language",
+  "description": "1-2 sentence description",
+  "purpose": "what problem it solves",
+  "parameters": [{"name": "param", "type": "type", "required": true, "description": "what it does"}],
+  "returns": {"type": "return type", "description": "what is returned"},
+  "usageExamples": ["example1 code string", "example2 code string"],
+  "edgeCases": ["edge case 1", "edge case 2"],
+  "complexity": {"time": "O(n)", "space": "O(1)", "explanation": "why"},
+  "securityNotes": ["security consideration 1"],
+  "docstring": "complete JSDoc or docstring for this function"
+}
+
+${!wantExamples ? 'Set usageExamples to [].' : ''}
+${!wantComplexity ? 'Set complexity to null.' : ''}
+${!wantSecurity ? 'Set securityNotes to [].' : ''}
+
+Code to document:
+\`\`\`
+${code}
+\`\`\``;
+
+  try {
+    // 15 second timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        signal: controller.signal,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.3, maxOutputTokens: 800 }
+        })
+      }
+    );
+    clearTimeout(timeoutId);
+
+    clearInterval(stepInterval);
+    steps.forEach(s => { document.getElementById(s)?.classList.remove('active'); document.getElementById(s)?.classList.add('done'); });
+
+    const data = await response.json();
+    if (data.error) throw new Error('API Error: ' + data.error.message);
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (!text) throw new Error('Empty response from Gemini. Check your API key.');
+    const cleaned = text.replace(/```json|```/g, '').trim();
+    let doc;
+    try { doc = JSON.parse(cleaned); }
+    catch(e) { throw new Error('Could not parse response. Try again.'); }
+
+    genCount++;
+    document.getElementById('genCount').textContent = genCount;
+    generatedText = cleaned;
+    renderDoc(doc);
+    document.getElementById('copyBtn').style.display = 'block';
+
+  } catch (err) {
+    clearInterval(stepInterval);
+    let hint = '';
+    if (err.name === 'AbortError') hint = '⏱️ Request timed out. Check your internet connection and try again.';
+    else if (err.message.includes('API_KEY_INVALID') || err.message.includes('API key')) hint = '🔑 Invalid API key. Get a fresh one from aistudio.google.com/app/apikey';
+    else if (err.message.includes('QUOTA') || err.message.includes('quota')) hint = '📊 API quota exceeded. Wait a minute and try again.';
+    else hint = err.message || 'Unknown error. Try again.';
+    document.getElementById('outputPanel').innerHTML = `
+      <div class="error-msg">
+        <strong>Generation failed</strong><br/><br/>
+        ${hint}<br/><br/>
+        <small style="opacity:0.5">Raw: ${err.message}</small>
+      </div>`;
+  }
+
+  btn.disabled = false;
+}
+
+function renderDoc(doc) {
+  let html = '';
+
+  // Header
+  html += `<div class="doc-section">
+    <div class="doc-h1">📦 ${doc.functionName || 'Function'} <span class="doc-tag green">${doc.language || ''}</span></div>
+    <p class="doc-p">${doc.description}</p>
+    <p class="doc-p" style="color:var(--muted)">${doc.purpose || ''}</p>
+  </div>`;
+
+  // Parameters
+  if (doc.parameters?.length) {
+    html += `<div class="doc-section"><div class="doc-h2">⚙️ Parameters</div>
+    <table class="doc-table">
+      <tr><th>Name</th><th>Type</th><th>Required</th><th>Description</th></tr>
+      ${doc.parameters.map(p => `<tr>
+        <td style="color:var(--accent);font-family:'Space Mono',monospace">${p.name}</td>
+        <td><span class="doc-tag">${p.type}</span></td>
+        <td>${p.required ? '<span class="doc-tag red">Required</span>' : '<span class="doc-tag">Optional</span>'}</td>
+        <td>${p.description}</td>
+      </tr>`).join('')}
+    </table></div>`;
+  }
+
+  // Returns
+  if (doc.returns) {
+    html += `<div class="doc-section"><div class="doc-h2">↩️ Returns</div>
+    <p class="doc-p"><span class="doc-tag">${doc.returns.type}</span> — ${doc.returns.description}</p></div>`;
+  }
+
+  // Usage Examples
+  if (doc.usageExamples?.length) {
+    html += `<div class="doc-section"><div class="doc-h2">🧪 Usage Examples</div>
+    ${doc.usageExamples.map(ex => `<div class="doc-code">${escapeHtml(ex)}</div>`).join('')}</div>`;
+  }
+
+  // Edge cases
+  if (doc.edgeCases?.length) {
+    html += `<div class="doc-section"><div class="doc-h2">⚠️ Edge Cases</div>
+    ${doc.edgeCases.map(e => `<p class="doc-p">• ${e}</p>`).join('')}</div>`;
+  }
+
+  // Complexity
+  if (doc.complexity) {
+    html += `<div class="doc-section"><div class="doc-h2">📊 Complexity</div>
+    <p class="doc-p">
+      Time: <span class="doc-tag green">${doc.complexity.time}</span> &nbsp;
+      Space: <span class="doc-tag">${doc.complexity.space}</span>
+    </p>
+    <p class="doc-p">${doc.complexity.explanation}</p></div>`;
+  }
+
+  // Security
+  if (doc.securityNotes?.length) {
+    html += `<div class="doc-section"><div class="doc-h2">🔒 Security Notes</div>
+    ${doc.securityNotes.map(s => `<p class="doc-p">• ${s}</p>`).join('')}</div>`;
+  }
+
+  // Docstring
+  if (doc.docstring) {
+    html += `<div class="doc-section"><div class="doc-h2">📝 Ready-to-paste Docstring</div>
+    <div class="doc-code">${escapeHtml(doc.docstring)}</div></div>`;
+  }
+
+  document.getElementById('outputPanel').innerHTML = html;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function copyDocs() {
+  navigator.clipboard.writeText(generatedText).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy', 2000);
+  });
+}
+</script>
+</body>
+</html>
