@@ -50,7 +50,7 @@ Developers rarely write documentation. This causes:
 
 1. Clone the repo:
    ```bash
-   git clone https://github.com/YOURUSERNAME/docuai.git
+   git clone https://github.com/varunraj3011/docuai.git
    cd docuai
    ```
 
