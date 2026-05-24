@@ -2,7 +2,8 @@
 
 > Stop writing docs manually. Paste any code → get complete professional documentation in under 5 seconds.
 
-**Built for [Hackathon Name] 2025** | Problem Statement #8 — Technical Documentation Generator
+**Built for AI Hackathon for Builders
+GL Bajaj Institute of Management and Research* | Problem Statement #8 — Technical Documentation Generator
 
 ---
 
